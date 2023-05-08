@@ -34,9 +34,10 @@ This can be done with `keyring.addFromUri(secret)` which creates keyring pair vi
 After creating keyring pair, it is possible to send data availability transaction `availApi.tx.dataAvailability.submitData(data);` to the Avail.
 Once transaction is included in the block it is possible to dispatch data root by creating transaction
 `availApi.tx.daBridge.tryDispatchDataRoot(destinationDomain, bridgeRouterEthAddress, header);` with the parameters:
+
 `destinationDomain` 1000
 
-`bridgeRouterEthAddress` is deployed DA router contract `[TODO]`
+`bridgeRouterEthAddress` deployed main data availability router contract
 
 `header` provided from the block when data is submitted
 
@@ -52,7 +53,7 @@ bridge, it is necessary to wait for 30 minutes before the data root is available
 
 After successfully bridging data root to the main data availability attestation contract,
 it is possible to prove that data is available on Avail by submitting a Merkle proof to the verification contract.
-Fetching proof from Avail is possible with RPC endpoint `kate_queryDataProof` for example `availApi.rpc.kate.queryDataProof(dataIndex, hashBlock);`
+Fetching proof from Avail is possible with RPC call `kate_queryDataProof` for example `availApi.rpc.kate.queryDataProof(dataIndex, hashBlock);`
 where `dataIndex` is index of the data (leaf) in the Merkle tree and `hashBlock` hash of the block. This RPC endpoint
 returns `DataProof` object that can be used to prove data availability on Avail.
 Example: 
@@ -78,6 +79,7 @@ DataProof: {
 By submitting proof to the verification contract it is possible to verify that data is available on Avail.
 Example of submitting a proof to the verification contract deployed on Ethereum and can be queried by calling 
 data root membership function `validiumContract.checkDataRootMembership(blockNum, leafHash, dataIndex, proof);` where
+
 `blockNum` number of the block for which data is checked
 
 `leafHash` hash of the data leaf that membership is checked

@@ -1,12 +1,163 @@
 # Embedding the light client
 
-## When and how to embed the light client (WIP)
+## When and how to embed the light client
 
 The Avail light client plays a vital role in ensuring the availability and correctness of data within the Avail network. By employing random sampling, it achieves security levels comparable to full nodes. Furthermore, by leveraging the peer-to-peer network, it enhances overall data availability while reducing the load on full nodes.  
 The light client is capable of downloading and verifying application-specific data submitted to Avail, which can be conveniently queried using the light client API.  
 The light client exposes an HTTP API that enables users to query the status, confidence, and application data for each processed block. When a block is finalized in Avail, the light client performs random sampling and verification, calculates confidence in the given block data, and if the confidence is high, retrieves the application data from the block. This data is then verified and stored locally for easy access.
 
-## Rust examples (WIP)
+## Rust examples
+
+### Fetching the number of the latest block processed by light client
+
+To fetch the number of the latest block processed by light client, we can perform `GET` request on `/v1/latest_block` endpoint.
+
+
+```rust
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LatestBlock {
+    pub latest_block: u32,
+}
+
+const LIGHT_CLIENT_URL: &str = "http://127.0.0.1:7000";
+
+let latest_block_url = format!("{LIGHT_CLIENT_URL}/v1/latest_block");
+let response = reqwest::get(latest_block_url).await.unwrap();
+
+if response.status() == StatusCode::OK {
+    let latest_block: LatestBlock =
+        serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    println!("{latest_block:?}");
+}
+// ...error handling...
+```
+
+### Fetching the confidence for given block
+
+To fetch the the confidence for specific block, which is already processed by application client, we can perform `GET` request on `/v1/confidece/{block_number}` endpoint.
+
+```rust
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Confidence {
+    pub block: u32,
+    pub confidence: f64,
+    pub serialised_confidence: Option<String>,
+}
+	
+const LIGHT_CLIENT_URL: &str = "http://127.0.0.1:7000";
+
+let block_number = 1;
+let confidence_url = format!("{LIGHT_CLIENT_URL}/v1/confidence/{block_number}");
+let response = reqwest::get(confidence_url).await.unwrap();
+
+if response.status() == StatusCode::OK {
+    let confidence: Confidence =
+        serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    println!("{confidence:?}");
+}
+// ...error handling...
+```
+
+### Fetching decoded application data for given block
+
+After data is verified, it can be fetched with `GET` request on `/v1/appdata/{block_number}` endpoint, by specifying `decode=true` query parameter.
+
+```rust
+
+use base64::Engine as _;
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ExtrinsicsData {
+    pub block: u32,
+    pub extrinsics: Vec<String>,
+}
+
+const LIGHT_CLIENT_URL: &str = "http://127.0.0.1:7000";
+
+let block_number = 2;
+let confidence_url = format!("{LIGHT_CLIENT_URL}/v1/appdata/{block_number}?decode=true");
+let response = reqwest::get(confidence_url).await.unwrap();
+
+if response.status() == StatusCode::OK {
+    let data: ExtrinsicsData =
+        serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    let decoded_bytes = engine::general_purpose::STANDARD
+        .decode(&data.extrinsics[0])
+        .unwrap();
+    let decoded_string = String::from_utf8(decoded_bytes).unwrap();
+    println!("{decoded_string:?}");
+}
+
+// ...error handling...
+```
+
+
+### Waiting for application data to be verified
+
+If light client is still processing specific block, we can poll light client with `GET` request on `/v1/appdata/{block_number}` endpoint, and wait for data to became available.
+
+```rust
+use avail_subxt::primitives::AppUncheckedExtrinsic;
+use serde::{Deserialize, Serialize};
+use anyhow::anyhow;
+use reqwest::StatusCode;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ExtrinsicsData {
+    pub block: u32,
+    pub extrinsics: Vec<AppUncheckedExtrinsic>,
+}
+
+const POLLING_TIMEOUT: Duration = Duration::from_secs(120);
+const POLLING_INTERVAL: Duration = Duration::from_secs(1);
+const LIGHT_CLIENT_URL: &str = "http://127.0.0.1:7000";
+
+async fn wait_for_appdata(appdata_url: &str, block: u32) -> anyhow::Result<ExtrinsicsData> {
+    let appdata_url = format!("{LIGHT_CLIENT_URL}/v1/appdata/{block}");
+    
+    let start_time = std::time::Instant::now();
+
+    loop {
+        if start_time.elapsed() >= POLLING_TIMEOUT {
+            return Err(anyhow!("Poll timeout exceeded"));
+        }
+
+        let response = reqwest::get(&appdata_url).await?;
+
+        match response.status() {
+            // If status is OK. response continas json representation of submitted data
+            StatusCode::OK => {
+                let text = &response.text().await?;
+                return Ok(serde_json::from_str(text)?);
+            }
+            // If it is not found, there is no data for given block and application
+            StatusCode::NOT_FOUND => {
+                return Ok(ExtrinsicsData {
+                    block,
+                    extrinsics: vec![],
+                })
+            }
+            // Wait for data to became available otherwise
+            _ => {
+                tokio::time::sleep(POLLING_INTERVAL).await;
+                continue;
+            }
+        }
+    }
+}
+
+```
+
+Function `wait_for_appdata` will block until data is available or timeout is reached.
 
 ## API reference
 

@@ -16,7 +16,7 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
 
 ## Archive Node Setup
 
-To run an archive node you must first reveiw the [full node](/join-the-network/full-node-setup) setup. You will complete all the same steps. The only difference is you will add `--pruning archive` to the paramaters. 
+To run an archive node you must first reveiw the [full node](/join-the-network/run-avail/full-node-setup) setup. You will complete all the same steps. The only difference is you will add `--pruning archive` to the paramaters. 
 
 When running as a full node, only the state of the past 256 blocks will be kept. Adding `--pruning archive` will store all the data.
 

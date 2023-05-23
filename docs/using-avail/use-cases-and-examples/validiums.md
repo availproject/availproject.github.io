@@ -4,6 +4,7 @@ title: Avail-Powered Validiums
 sidebar_label: Validiums
 description: How to use Avail to build validiums
 keywords:
+
 - docs
 - avail
 - availability
@@ -47,14 +48,14 @@ to join our early access program.
 
 Validiums are scaling solutions that are using off-chain computation and
 validity proofs, but data is not stored on Ethereum chain which significantly
-increases transactions throughput.  Validity proof can come in from of zero knowledge proofs
+increases transactions throughput. Validity proof can come in from of zero knowledge proofs
 like _ZK-SNARK_ or _ZK-STARK_ in which one party can prove to another party that the given statement is true
 while the prover avoids disclosure of additional information apart from the fact that the statement is indeed true.
 Validity of all transactions is enforced using validity proofs while data availability is kept off chain.
-User can withdraw funds by providing a Merkle proof which can prove inclusion of the users withdrawal transaction and allow
-the on-chain contract to process withdrawal. Validium interact with the Ethereum with a collection of contracts
-including main _attestation_ contract that stores state commitments (Merkle data roots) submitted by the block produce and
-_verification_ contract which verifies the validity proof when making state transitions.
+User can withdraw funds by providing a Merkle proof which can prove inclusion of the users withdrawal transaction and
+allow the on-chain contract to process withdrawal. Validium interact with the Ethereum with a collection of contracts
+including main _attestation_ contract that stores state commitments (Merkle data roots) submitted by the block producer
+and _verification_ contract which verifies the validity proof when making state transitions.
 
 ## Verify data availability on Ethereum
 
@@ -65,16 +66,16 @@ interpreted or executed in any way. The submission can be done using
 `Polkadot-JS` which is a collection of tools for communication with
 Substrate based chains.
 
-Complete example can be found on [github](https://github.com/availproject/avail-js-examples/tree/master/src/validium).   
-
+Complete example can be found on the Avail
+GitHub [repository](https://github.com/availproject/avail/tree/main/examples/validium).
 
 Example of sending data to Avail:
 
  ```typescript
     async function submitData(availApi, data, account) {
-        let submit = await availApi.tx.dataAvailability.submitData(data);
-        return await sendTx(availApi, account, submit);
-    }
+    let submit = await availApi.tx.dataAvailability.submitData(data);
+    return await sendTx(availApi, account, submit);
+}
    ```
 
 Function `submitData` receives `availApi` api instance, `data` that will be submitted,
@@ -82,21 +83,21 @@ and the `account` which is sending the transaction. In order to create account
 it is necessary to create _keyring_ _pair_ for the account that wants to send the data.
 This can be done with `keyring.addFromUri(secret)` which creates keyring pair via suri
 (the secret can be a hex string, mnemonic phrase or a string).
-After creating keyring pair, it is possible to submit data in a transaction to the Avail network with 
+After creating keyring pair, it is possible to submit data in a transaction to the Avail network with
 `availApi.tx.dataAvailability.submitData(data);`. Once the transaction is included in an Avail block,
 it is possible to initiate the dispatch of the data root by creating a dispatch transaction
-`availApi.tx.daBridge.tryDispatchDataRoot(destinationDomain, bridgeRouterEthAddress, header);` with the parameters:
+`availApi.tx.nomadDABridge.tryDispatchDataRoot(destinationDomain, bridgeRouterEthAddress, header);` with the parameters:
 
-`destinationDomain` Destination domain 1000.
+`destinationDomain` Destination domain, always `1000`.
 
-`bridgeRouterEthAddress` Address of the main data availability router contract.
+`bridgeRouterEthAddress` Address of data availability router contract, one such for Avail testnet deployed on Sepolia network `0xbD824890A51ed8bda53F51F27303b14EFfEbC152`.
 
 `header` Provided from the block when data is submitted.
 
 ```typescript
    async function dispatchDataRoot(availApi, blockHash, account) {
     const header = await availApi.rpc.chain.getHeader(blockHash);
-    let tx = await availApi.tx.daBridge.tryDispatchDataRoot(
+    let tx = await availApi.tx.nomadDABridge.tryDispatchDataRoot(
         process.env.DESTINATION_DOMAIN,
         process.env.DA_BRIDGE_ADDRESS,
         header
@@ -108,16 +109,18 @@ it is possible to initiate the dispatch of the data root by creating a dispatch 
 :::info Example of submitting data to Avail and dispatching the data root using `Polkadot-JS`.
 
 Environment variables:
+
 ```dotenv
 AVAIL_RPC= # avail websocket url
 SURI= # mnemonic
-DA_BRIDGE_ADDRESS= # main da bridge contract address
-DESTINATION_DOMAIN= # destination domain is 1000
-DATA= # data sending to avail
+DA_BRIDGE_ADDRESS= # main da bridge contract address, one such for Avail testnet deployed to Sepolia address 0xbD824890A51ed8bda53F51F27303b14EFfEbC152 
+DESTINATION_DOMAIN= # destination domain, always is 1000
+DATA= # data blob sending to Avail
 ```
+
 <details>
   <summary>
-    Dispatch Data Root Javascript Example
+    Submit And Dispatch Data Root Javascript Example
   </summary>
 
 ```typescript
@@ -283,12 +286,12 @@ async function dispatchDataRoot(availApi, blockHash, account) {
     const header = await availApi.rpc.chain.getHeader(blockHash);
     console.log(`Block Number: ${header.number}`);
     console.log(`State Root: ${header.stateRoot}`);
-    let tx = await availApi.tx.daBridge.tryDispatchDataRoot(destinationDomain, bridgeRouterEthAddress, header);
+    let tx = await availApi.tx.nomadDABridge.tryDispatchDataRoot(destinationDomain, bridgeRouterEthAddress, header);
     return await sendTx(availApi, account, tx);
 }
 
 /**
- * Returns data root fot the particular block.
+ * Returns data root for the particular block.
  *
  * @param availApi api instance
  * @param blockHash hash of the block
@@ -333,11 +336,13 @@ is optimistic
 bridge, it is necessary to wait for 30 minutes before the data root is available on the Ethereum network.
 
 After successfully bridging data root to the main data availability attestation contract on the Ethereum network,
-it is possible to prove that data is available on Avail network by submitting a Merkle proof to the verification contract.
+it is possible to prove that data is available on Avail network by submitting a Merkle proof to the verification
+contract.
 Fetching proof from Avail can be done via RPC call `kate_queryDataProof` for
 example `availApi.rpc.kate.queryDataProof(dataIndex, hashBlock);`
 where `dataIndex` is index of the data (leaf) in the Merkle tree and `hashBlock` which is a hash of the block in which
-the data is included. This RPC endpoint returns `DataProof` object that can be used to prove on Ethereum that data is available on the Avail network.
+the data is included. This RPC endpoint returns `DataProof` object that can be used to prove on Ethereum that data is
+available on the Avail network.
 Example:
 
 ```typescript
@@ -386,13 +391,13 @@ contract DataAvailabilityRouter {
 contract ValidiumContract {
 
     DataAvailabilityRouter router;
-    
+
     function setRouter(
         address _router
     ) public {
         router = DataAvailabilityRouter(_router);
     }
-    
+
     function getDataRoot(
         uint32 blockNumber
     ) public view returns (bytes32) {
@@ -433,6 +438,7 @@ contract ValidiumContract {
 }
 
 ```
+
 </details>
 
 :::
@@ -447,7 +453,7 @@ deployed on Ethereum can be queried by calling data root membership function
 
 `blockNumber` Avail block number.
 
-`proof` Merkle proof fot the leaf.
+`proof` Merkle proof for the leaf.
 
 `numberOfLeaves` Number of leaves in the original tree.
 
@@ -460,11 +466,12 @@ This contract call will return `true` or `false` depending on the provided proof
 :::info Example of getting the proof and checking it with verification contract using `Polkadot-JS` and `Ethers.js`.
 
 Environment variables:
+
 ```dotenv
 AVAIL_RPC= # avail websocket address
 INFURA_KEY= # rpc provider key if needed
-VALIDIUM_ADDRESS= # address of the verification contract
-VALIDIYM_ABI_PATH= # path to abi file
+VALIDIUM_ADDRESS= # verification contract address, one version deployed to address 0x892870a51D5669B2f5fB12474D9392499eE86F5b
+VALIDIYM_ABI_PATH= # path to abi file e.g. abi/ValidiumContract.json
 BLOCK_NUMBER= # number of the block for which to get Merkle proof
 BLOCK_HASH= # hash of the block for which to get Merkle proof
 DATA_INDEX= # index of the leaf element in the Merkle trie for which to get the proof 
@@ -492,7 +499,6 @@ dotenv.config()
  */
 async function createApi(url) {
     const provider = new WsProvider(url)
-
     // Create the API and wait until ready
     return ApiPromise.create({
         provider,
@@ -532,7 +538,7 @@ async function createApi(url) {
  *
  * @param availApi Api instance
  * @param hashBlock Hash of the block
- * @param dataIndex Leaf index in the merkle trie fot which the proof is returned
+ * @param dataIndex Leaf index in the merkle trie for which the proof is returned
  * @returns {Promise<*>}
  */
 async function getProof(availApi, hashBlock, dataIndex) {
@@ -546,7 +552,7 @@ async function getProof(availApi, hashBlock, dataIndex) {
  *
  * @param sepoliaApi Sepolia network api instance
  * @param blockNumber Avail block number
- * @param proof Merkle proof fot the leaf
+ * @param proof Merkle proof for the leaf
  * @param numberOfLeaves Number of leaves in the original tree
  * @param leafIndex Index of the leaf in the Merkle tree
  * @param leafHash Hash of the leaf in the Merkle tree
@@ -572,7 +578,8 @@ async function checkProof(sepoliaApi, blockNumber, proof, numberOfLeaves, leafIn
     console.log(`Leaf index : ${daHeader.leaf_index}`);
     console.log(`Number of leaves: ${daHeader.numberOfLeaves}`);
 
-    const isDataAccepted = await checkProof(sepoliaApi, process.env.BLOCK_NUMBER, daHeader.proof, daHeader.numberOfLeaves, daHeader.leaf_index, daHeader.leaf);    console.log("Data is: " + (isDataAccepted ? "available" : "not available"));
+    const isDataAccepted = await checkProof(sepoliaApi, process.env.BLOCK_NUMBER, daHeader.proof, daHeader.numberOfLeaves, daHeader.leaf_index, daHeader.leaf);
+    console.log("Data is: " + (isDataAccepted ? "available" : "not available"));
     await availApi.disconnect();
     await sepoliaApi.destroy();
 })().then(() => {
@@ -583,6 +590,7 @@ async function checkProof(sepoliaApi, blockNumber, proof, numberOfLeaves, leafIn
 });
 
 ```
+
 </details>
 
 :::

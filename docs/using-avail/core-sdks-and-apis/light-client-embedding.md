@@ -1,3 +1,22 @@
+---
+id: embedding-the-light-client
+title: Embedding the Light Client
+sidebar_label: Embedding the Light Client
+sidebar_position: 3
+description: How to embed the light client into a dust application
+keywords:
+  - docs
+  - avail
+  - data
+  - availability
+  - how-to
+  - light client
+  - embedding
+  - rust
+image: https://availproject.github.io/img/avail/AvailDocs.png
+slug: embedding-the-light-client
+---
+
 # Embedding the light client
 
 ## When and how to embed the light client

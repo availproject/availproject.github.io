@@ -376,23 +376,24 @@ DataProof: {
   </summary>
 
 ```solidity
+//SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.19;
 
-pragma solidity 0.8.15;
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract DataAvailabilityRouter {
     mapping(uint32 => bytes32) public roots;
 }
 
-contract ValidiumContract {
+contract ValidiumContract is Ownable {
+    DataAvailabilityRouter private router;
 
-    DataAvailabilityRouter router;
-    
     function setRouter(
         address _router
-    ) public {
+    ) public onlyOwner {
         router = DataAvailabilityRouter(_router);
     }
-    
+
     function getDataRoot(
         uint32 blockNumber
     ) public view returns (bytes32) {
@@ -401,16 +402,16 @@ contract ValidiumContract {
 
     function checkDataRootMembership(
         uint32 blockNumber,
-        bytes32[] memory proof,
-        uint256 numberOfLeaves,
-        uint256 leafIndex,
+        bytes32[] calldata proof,
+        uint32 numberOfLeaves,
+        uint256 index,
         bytes32 leaf
-    ) public view returns (bool) {
-        if (leafIndex >= numberOfLeaves) {
+    ) public view returns (bool isMember) {
+        if (index >= numberOfLeaves) {
             return false;
         }
 
-        uint256 position = leafIndex;
+        uint256 position = index;
         uint256 width = numberOfLeaves;
 
         bytes32 computedHash = leaf;
@@ -419,9 +420,9 @@ contract ValidiumContract {
             bytes32 proofElement = proof[i];
 
             if (position % 2 == 1 || position + 1 == width) {
-                computedHash = sha256(abi.encodePacked(proofElement, computedHash));
+                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
             } else {
-                computedHash = sha256(abi.encodePacked(computedHash, proofElement));
+                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
             }
 
             position /= 2;
@@ -440,7 +441,7 @@ contract ValidiumContract {
 By submitting proof to the verification contract it is possible to verify
 that data is available on Avail. Merkle proof is a list of hashes that can be used to prove
 that given leaf is a member of the Merkle tree. Example of submitting a proof to the verification contract
-deployed on Sepolia network (`0x038348cD1106476a9cd359Bc34EA027E29513dEB`) can be queried by calling data root membership function 
+deployed on Sepolia network (`0xC6EB393dC1b4202330227f5FcB4f79Fe0142c5c3`) can be queried by calling data root membership function 
 `async function checkProof(sepoliaApi, blockNumber, proof, numberOfLeaves, leafIndex, leafHash);` where
 
 `sepoliaApi` Sepolia network api instance.
@@ -464,7 +465,7 @@ Environment variables:
 ```dotenv
 AVAIL_RPC= # avail websocket address
 INFURA_KEY= # rpc provider key if needed 
-VALIDIUM_ADDRESS= # address of the verification contract, one such is deployed on Sepolia network 0x038348cD1106476a9cd359Bc34EA027E29513dEB
+VALIDIUM_ADDRESS= # address of the verification contract, one such is deployed on Sepolia network 0xC6EB393dC1b4202330227f5FcB4f79Fe0142c5c3
 VALIDIYM_ABI_PATH= # path to abi file e.g. abi/ValidiumContract.json
 BLOCK_NUMBER= # number of the block for which to get Merkle proof
 BLOCK_HASH= # hash of the block for which to get Merkle proof

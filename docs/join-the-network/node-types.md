@@ -82,3 +82,35 @@ network.
 
 The RPC node serves as a gateway for developers and users to interact
 with the Avail network without the need to run a full node locally.
+
+### Bootstrap nodes
+This type of node, a bootstrapping node, is also known as a rendezvous 
+host. Also popularly known as a Boot Node, or a Bootstrap Node. New nodes
+in a p2p network often make their initial connection to these sets of nodes. 
+Bootstrap node in an overlay network than provides initial configuration information 
+to newly joining nodes so that they may successfully join the p2p network.
+Bootstrapping exist in overlay networks [peer-to-peer (P2P)] because of 
+the dynamically changing identities and configurations of member nodes in 
+these networks.
+
+After a Boot node had served it purpose as an entry point to the network,
+and had provided a list of other nodes in the network to the newcomers,
+new nodes will no longer relly on them.
+
+### Relay nodes
+There will certainly be situations were means of establishing a direct 
+communication between peers is unfeasible. These situations require the 
+assistance of a third peer willing and able to act as a intermediary.
+
+In real-world peer-to-peer networks, direct communication between all its
+peers may practically be impossible, and suffers from variety of reasons.
+Even if assume that everyone on the network has the same common transport
+mechanism, one or more peers may be behind a firewall, or some has NAT
+traversal issues.
+
+This gaping communication chasm is possible to bridge, so long as each
+of peers is capable of establishing a connection to a willing Relay peer.
+And our pal, the Relay peer, will try to directly connect our problematic
+peers, or still provide a circuit relayed connection in cases of pesky
+Symmetric NAT cases. Either way, the Relay node is a great ally in trying
+to minimise snags in p2p network connectivity.
